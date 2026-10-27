@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberShield: Login Event Monitor — SOC Dashboard</title>
+  <meta name="description" content="CyberShield is a high-performance login event monitoring and brute-force detection dashboard built for defensive security operations.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="app-container">
+  
+  <!-- ====================================================================
+       LEFT SIDEBAR NAVIGATION
+       ==================================================================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="/static/assets/logo.svg" alt="CyberShield Logo" class="logo-icon">
+      <div class="logo-text">
+        <h1>CyberShield</h1>
+        <span class="logo-badge">DEFENSIVE SIMULATION</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Core Operations</div>
+      <a class="nav-item active" data-view="dashboard" id="nav-dashboard">
+        <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a class="nav-item" data-view="live-monitor" id="nav-live-monitor">
+        <span class="nav-icon"><i class="fa-solid fa-satellite-dish"></i></span>
+        <span class="nav-label">Live Event Monitor</span>
+      </a>
+      <a class="nav-item" data-view="test-lab" id="nav-test-lab">
+        <span class="nav-icon"><i class="fa-solid fa-flask-vial"></i></span>
+        <span class="nav-label">Attack & Test Lab</span>
+        <span class="nav-badge info">Demo</span>
+      </a>
+
+      <div class="nav-section-title">Security & Analysis</div>
+      <a class="nav-item" data-view="detection-rules" id="nav-detection-rules">
+        <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span>
+        <span class="nav-label">Detection Rules</span>
+      </a>
+      <a class="nav-item" data-view="flagged-accounts" id="nav-flagged-accounts">
+        <span class="nav-icon"><i class="fa-solid fa-user-ninja"></i></span>
+        <span class="nav-label">Flagged Accounts</span>
+        <span class="nav-badge danger" id="sidebar-flagged-badge">0</span>
+      </a>
+      <a class="nav-item" data-view="alert-history" id="nav-alert-history">
+        <span class="nav-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+        <span class="nav-label">Alert History</span>
+        <span class="nav-badge warning" id="sidebar-alert-badge">0</span>
+      </a>
+
+      <div class="nav-section-title">Administration</div>
+      <a class="nav-item" data-view="reports" id="nav-reports">
+        <span class="nav-icon"><i class="fa-solid fa-file-invoice"></i></span>
+        <span class="nav-label">Reports & Export</span>
+      </a>
+      <a class="nav-item" data-view="settings" id="nav-settings">
+        <span class="nav-icon"><i class="fa-solid fa-sliders"></i></span>
+        <span class="nav-label">Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="system-status">
+        <div class="status-dot"></div>
+        <div>
+          <div style="font-weight: 600; color: var(--text-primary);">Pipeline Active</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);" id="sidebar-pipeline-meta">Queue: 0 | 0.0 evt/s</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================================================================
+       MAIN CONTENT CONTAINER
+       ==================================================================== -->
+  <main class="main-content">
+    
+    <!-- Top Navbar -->
+    <header class="top-navbar">
+      <div class="nav-left">
+        <button class="mobile-menu-btn" id="mobile-menu-btn" title="Toggle Menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="page-title" id="page-title">
+          <i class="fa-solid fa-chart-line" style="color: var(--accent-cyan);"></i>
+          <span>Operations Dashboard</span>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Simulator Quick Action Bar -->
+        <div class="sim-quick-bar">
+          <div class="sim-indicator">
+            <span class="status-dot" id="quick-sim-dot" style="background-color: var(--text-muted); box-shadow: none;"></span>
+            <span class="sim-state-text" id="quick-sim-state">STOPPED</span>
+          </div>
+          <div class="sim-btn-group">
+            <button class="btn btn-sm btn-success" id="quick-sim-start" title="Start Synthetic Simulator">
+              <i class="fa-solid fa-play"></i> Start
+            </button>
+            <button class="btn btn-sm btn-warning" id="quick-sim-pause" title="Pause Simulator">
+              <i class="fa-solid fa-pause"></i> Pause
+            </button>
+            <button class="btn btn-sm btn-danger" id="quick-sim-stop" title="Stop Simulator">
+              <i class="fa-solid fa-stop"></i> Stop
+            </button>
+          </div>
+        </div>
+
+        <button class="btn btn-sm btn-outline" id="global-reset-btn" title="Reset Demo Data" style="color: var(--accent-rose); border-color: rgba(239, 68, 68, 0.4);">
+          <i class="fa-solid fa-rotate-left"></i> Reset Demo
+        </button>
+      </div>
+    </header>
+
+    <!-- Views Container -->
+    <div class="views-container">
+
+      <!-- ================================================================
+           VIEW 1: DASHBOARD
+           ================================================================ -->
+      <section class="page-view active" id="view-dashboard">
+        
+        <!-- Summary Cards Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Total Events Processed</span>
+              <div class="metric-icon-box" style="color: var(--accent-cyan);"><i class="fa-solid fa-database"></i></div>
+            </div>
+            <div class="metric-value" id="dash-total-events">0</div>
+            <div class="metric-sub"><i class="fa-solid fa-bolt" style="color: var(--accent-cyan);"></i> Ingested via thread-safe queue</div>
+          </div>
+
+          <div class="metric-card success">
+            <div class="metric-header">
+              <span class="metric-title">Successful Logins</span>
+              <div class="metric-icon-box" style="color: var(--accent-emerald);"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
+            <div class="metric-value" id="dash-success-logins" style="color: var(--accent-emerald);">0</div>
+            <div class="metric-sub" id="dash-success-rate">0% Authorized</div>
+          </div>
+
+          <div class="metric-card danger">
+            <div class="metric-header">
+              <span class="metric-title">Failed Logins</span>
+              <div class="metric-icon-box" style="color: var(--accent-rose);"><i class="fa-solid fa-circle-xmark"></i></div>
+            </div>
+            <div class="metric-value" id="dash-failed-logins" style="color: var(--accent-rose);">0</div>
+            <div class="metric-sub" id="dash-failure-rate">0% Rejection rate</div>
+          </div>
+
+          <div class="metric-card warning">
+            <div class="metric-header">
+              <span class="metric-title">Suspicious Accounts</span>
+              <div class="metric-icon-box" style="color: var(--accent-amber);"><i class="fa-solid fa-user-shield"></i></div>
+            </div>
+            <div class="metric-value" id="dash-flagged-accounts" style="color: var(--accent-amber);">0</div>
+            <div class="metric-sub">High / Critical risk rating</div>
+          </div>
+
+          <div class="metric-card danger">
+            <div class="metric-header">
+              <span class="metric-title">Alerts Generated</span>
+              <div class="metric-icon-box" style="color: var(--accent-rose);"><i class="fa-solid fa-bell"></i></div>
+            </div>
+            <div class="metric-value" id="dash-total-alerts">0</div>
+            <div class="metric-sub" id="dash-crit-alerts">0 Critical Alerts</div>
+          </div>
+
+          <div class="metric-card purple">
+            <div class="metric-header">
+              <span class="metric-title">Rejected / Duplicates</span>
+              <div class="metric-icon-box" style="color: var(--accent-purple);"><i class="fa-solid fa-filter-circle-xmark"></i></div>
+            </div>
+            <div class="metric-value" id="dash-rejected-events" style="color: var(--accent-purple);">0</div>
+            <div class="metric-sub">Malformed & duplicate discards</div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+          <!-- Activity Line Chart -->
+          <div class="chart-card">
+            <div class="panel-header">
+              <div class="panel-title"><i class="fa-solid fa-chart-area" style="color: var(--accent-cyan);"></i> Login Traffic Timeline (Success vs Failure)</div>
+              <span class="badge badge-info"><i class="fa-solid fa-clock"></i> 1-Min Buckets</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="timelineChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Success vs Failure Doughnut Chart -->
+          <div class="chart-card">
+            <div class="panel-header">
+              <div class="panel-title"><i class="fa-solid fa-chart-pie" style="color: var(--accent-emerald);"></i> Status Ratio</div>
+            </div>
+            <div class="chart-doughnut-container">
+              <canvas id="statusDoughnutChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Horizontal Bar Chart: Failures by Account -->
+        <div class="chart-card full-width" style="margin-bottom: 24px;">
+          <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-chart-bar" style="color: var(--accent-rose);"></i> Top Accounts with Failed Logins (Targeted Victims)</div>
+            <span class="badge badge-danger">Adversarial Pressure</span>
+          </div>
+          <div class="chart-container" style="height: 220px;">
+            <canvas id="accountFailuresBarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Bottom Split: Recent Alerts & Live Stream -->
+        <div class="dashboard-split">
+          
+          <!-- Recent Alerts Panel -->
+          <div class="chart-card">
+            <div class="panel-header">
+              <div class="panel-title"><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-rose);"></i> Recent Security Alerts</div>
+              <button class="btn btn-sm btn-outline" onclick="app.navigateTo('alert-history')">View All</button>
+            </div>
+            <div id="dash-alerts-list">
+              <div class="empty-state">
+                <i class="fa-solid fa-shield-heart empty-icon" style="color: var(--accent-emerald);"></i>
+                <div class="empty-title">All Systems Secure</div>
+                <div class="empty-subtitle">No alerts generated yet. Run the simulator or attack lab to trigger alerts.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Event Feed Panel -->
+          <div class="chart-card">
+            <div class="panel-header">
+              <div class="panel-title"><i class="fa-solid fa-stream" style="color: var(--accent-cyan);"></i> Live Event Feed</div>
+              <button class="btn btn-sm btn-outline" onclick="app.navigateTo('live-monitor')">Full Monitor</button>
+            </div>
+            <div class="table-responsive" style="max-height: 320px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Account</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-live-events-tbody">
+                  <tr>
+                    <td colspan="4" class="empty-state">Waiting for login events...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================================================================
+           VIEW 2: LIVE EVENT MONITOR
+           ================================================================ -->
+      <section class="page-view" id="view-live-monitor">
+        
+        <!-- Simulator Control Deck -->
+        <div class="chart-card" style="margin-bottom: 20px;">
+          <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-gears" style="color: var(--accent-cyan);"></i> Synthetic Event Generator Controls</div>
+            <span class="badge badge-info" id="monitor-sim-status-badge">STOPPED</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Simulation Mode</label>
+              <select class="form-select" id="sim-mode-select">
+                <option value="mixed" selected>Realistic Mixed Traffic</option>
+                <option value="normal">Normal Activity (88% Success)</option>
+                <option value="suspicious">Suspicious Attack (Brute-Force Bursts)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Event Batch Size</label>
+              <select class="form-select" id="sim-count-select">
+                <option value="25">25 Events</option>
+                <option value="50" selected>50 Events</option>
+                <option value="100">100 Events</option>
+                <option value="500">500 Events</option>
+                <option value="">Continuous (Until Stopped)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Generation Speed</label>
+              <select class="form-select" id="sim-speed-select">
+                <option value="100">Very Fast (100ms)</option>
+                <option value="250">Fast (250ms)</option>
+                <option value="500" selected>Balanced (500ms)</option>
+                <option value="1000">Slow (1000ms)</option>
+                <option value="2000">Pedestrian (2000ms)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Target Account (Optional)</label>
+              <select class="form-select" id="sim-target-select">
+                <option value="">Randomized Selection</option>
+                <option value="user101">user101</option>
+                <option value="user102">user102</option>
+                <option value="user103">user103</option>
+                <option value="user104">user104</option>
+                <option value="user105">user105</option>
+                <option value="user107">user107</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end;">
+            <button class="btn btn-success" id="deck-sim-start"><i class="fa-solid fa-play"></i> Start Generator</button>
+            <button class="btn btn-warning" id="deck-sim-pause"><i class="fa-solid fa-pause"></i> Pause</button>
+            <button class="btn btn-danger" id="deck-sim-stop"><i class="fa-solid fa-stop"></i> Stop</button>
+          </div>
+        </div>
+
+        <!-- Manual Event Injector Accordion/Card -->
+        <div class="chart-card" style="margin-bottom: 20px;">
+          <div class="panel-header" style="cursor: pointer;" onclick="app.toggleManualInjector()">
+            <div class="panel-title"><i class="fa-solid fa-syringe" style="color: var(--accent-blue);"></i> Manual Event Injector (Direct API POST)</div>
+            <span style="font-size: 0.8rem; color: var(--accent-cyan);"><i class="fa-solid fa-chevron-down" id="manual-injector-arrow"></i></span>
+          </div>
+          <div id="manual-injector-body" style="display: none; padding-top: 10px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+              <div>
+                <label class="form-label">Account ID</label>
+                <input type="text" class="form-input" id="manual-account" value="user101" placeholder="e.g. user101">
+              </div>
+              <div>
+                <label class="form-label">Status</label>
+                <select class="form-select" id="manual-status">
+                  <option value="SUCCESS">SUCCESS</option>
+                  <option value="FAILURE">FAILURE</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Source</label>
+                <select class="form-select" id="manual-source">
+                  <option value="web-portal-us">web-portal-us</option>
+                  <option value="mobile-app-ios">mobile-app-ios</option>
+                  <option value="api-gateway">api-gateway</option>
+                  <option value="vpn-internal">vpn-internal</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Custom Event ID (Optional)</label>
+                <input type="text" class="form-input" id="manual-id" placeholder="Auto-generated if empty">
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-submit-manual-event"><i class="fa-solid fa-paper-plane"></i> Ingest Event</button>
+          </div>
+        </div>
+
+        <!-- Processed Events Feed Table -->
+        <div class="chart-card">
+          <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-list-check" style="color: var(--accent-cyan);"></i> Ingested Events Stream</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="text" class="form-input" id="events-search-filter" placeholder="Filter by Account or Source..." style="width: 240px; padding: 4px 10px; font-size: 0.8rem;">
+              <select class="form-select" id="events-status-filter" style="width: 130px; padding: 4px 10px; font-size: 0.8rem;">
+                <option value="">All Statuses</option>
+                <option value="SUCCESS">SUCCESS</option>
+                <option value="FAILURE">FAILURE</option>
+              </select>
+              <button class="btn btn-sm btn-outline" id="refresh-events-btn"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+            </div>
+          </div>
+
+          <div class="table-responsive" style="max-height: 480px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Event ID</th>
+                  <th>Account ID</th>
+                  <th>Timestamp (UTC)</th>
+                  <th>Source</th>
+                  <th>Status</th>
+                  <th>Ingestion Time</th>
+                </tr>
+              </thead>
+              <tbody id="events-feed-tbody">
+                <tr><td colspan="6" class="empty-state">No events ingested yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================================================================
+           VIEW 3: ATTACK & TEST LAB (HACKATHON DEMO PAGE)
+           ================================================================ -->
+      <section class="page-view" id="view-test-lab">
+        <div class="lab-header">
+          <div class="lab-title">
+            <i class="fa-solid fa-flask-vial" style="color: var(--accent-cyan);"></i>
+            <span>Interactive Security Attack & Verification Lab</span>
+          </div>
+          <div class="lab-desc">
+            Test and demonstrate the core detection engine requirements for the hackathon presentation. Each scenario executes in real-time, validating sliding time windows, out-of-order event sorting, multi-threaded concurrency locking, and input sanitization.
+          </div>
+        </div>
+
+        <!-- 8 Scenario Cards Grid -->
+        <div class="scenarios-grid">
+          
+          <!-- Test 1: Normal Events -->
+          <div class="scenario-card">
+            <div class="scenario-top">
+              <span class="scenario-badge badge-success">Baseline</span>
+              <div class="scenario-name">1. Normal Activity Batch</div>
+              <div class="scenario-details">
+                Generates a clean baseline of 5 realistic login attempts across synthetic accounts. Mostly authorized successes with occasional failures.
+              </div>
+            </div>
+            <button class="btn btn-outline btn-cyber btn-sm" onclick="app.runDemoScenario('normal')">
+              <i class="fa-solid fa-play"></i> Run Test
+            </button>
+          </div>
+
+          <!-- Test 2: Repeated Failures -->
+          <div class="scenario-card">
+            <div class="scenario-top">
+              <span class="scenario-badge badge-danger">Rule 1 Trigger</span>
+              <div class="scenario-name">2. Repeated Failed Logins</div>
+              <div class="scenario-details">
+                Sends 5 consecutive failed logins for target <span class="scenario-code">user102</span> within seconds to trigger Rule 1 brute-force alert.
+              </div>
+            </div>
+            <button class="btn btn-outline btn-danger btn-sm" onclick="app.runDemoScenario('repeated_failures')">
+              <i class="fa-solid fa-skull"></i> Trigger Attack
+            </button>
+          </div>
+
+          <!-- Test 3: Out-of-Order Events -->
+          <div class="scenario-card" style="border-color: rgba(0, 242, 254, 0.4);">
+            <div class="scenario-top">
+              <span class="scenario-badge badge-info">Hackathon Highlight</span>
+              <div class="scenario-name">3. Out-of-Order Events Test</div>
+              <div class="scenario-details">
+                Submits 5 failures for <span class="scenario-code">user104</span> in scrambled arrival order: 
+                <br><b>[10:04, 10:01, 10:03, 10:02, 10:00]</b>. 
+                Proves pipeline sorts chronologically and catches window.
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="app.runDemoScenario('out_of_order')">
+              <i class="fa-solid fa-shuffle"></i> Test Out-of-Order
+            </button>
+          </div>
+
+          <!-- Test 4: Concurrent Failures -->
+          <div class="scenario-card" style="border-color: rgba(99, 102, 241, 0.4);">
+            <div class="scenario-top">
+              <span class="scenario-badge badge-warning">Thread Safety</span>
+              <div class="scenario-name">4. Concurrent Failures Test</div>
+              <div class="scenario-details">
+                Fires 10 simultaneous worker threads targeting <span class="scenario-code">user105</span>. Verifies that RLock guarantees zero lost counter increments.
+              </div>
+            </div>
+            <button class="btn btn-warning btn-sm" onclick="app.runDemoScenario('concurrent_failures')">
+              <i class="fa-solid fa-bolt"></i> Stress Test Concurrency
+            </button>
+          </div>
+
+          <!-- Test 5: Duplicate Event -->
+          <div class="scenario-card">
+            <div class="scenario-top">
+              <span class="scenario-badge badge-info">Rule 3 Trigger</span>
+              <div class="scenario-name">5. Duplicate Event Replay</div>
+              <div class="scenario-details">
+                Attempts to submit the exact same <span class="scenario-code">event_id</span> twice. Verifies immediate rejection by Rule 3 without counter increments.
+              </div>
+            </div>
+            <button class="btn btn-outline btn-cyber btn-sm" onclick="app.runDemoScenario('duplicate')">
+              <i class="fa-solid fa-copy"></i> Test Duplicate Filter
+            </button>
+          </div>
+
+          <!-- Test 6: Malformed Event -->
+          <div class="scenario-card">
+            <div class="scenario-top">
+              <span class="scenario-badge badge-danger">Rule 4 Trigger</span>
+              <div class="scenario-name">6. Malformed Event Payload</div>
+              <div class="scenario-details">
+                Submits a corrupted payload missing mandatory timestamps and containing an invalid status enum. Verifies safe validation rejection.
+              </div>
+            </div>
+            <button class="btn btn-outline btn-warning btn-sm" onclick="app.runDemoScenario('malformed')">
+              <i class="fa-solid fa-bug"></i> Test Input Sanitizer
+            </button>
+          </div>
+
+          <!-- Test 7: Unknown Account Policy -->
+          <div class="scenario-card">
+            <div class="scenario-top">
+              <span class="scenario-badge badge-info">Policy Test</span>
+              <div class="scenario-name">7. Unknown Account Test</div>
+              <div class="scenario-details">
+                Submits an event for an unregistered synthetic ID. Tests behavior against active Unknown-Account Policy (AUTO_CREATE vs REJECT).
+              </div>
+            </div>
+            <button class="btn btn-outline btn-cyber btn-sm" onclick="app.runDemoScenario('unknown_account')">
+              <i class="fa-solid fa-user-secret"></i> Test Policy Handling
+            </button>
+          </div>
+
+          <!-- Test 8: Unusual Source Activity -->
+          <div class="scenario-card">
+            <div class="scenario-top">
+              <span class="scenario-badge badge-danger">Rule 2 Trigger</span>
+              <div class="scenario-name">8. Unusual Source Activity</div>
+              <div class="scenario-details">
+                Sends failures for <span class="scenario-code">user107</span> across 4 distinct simulated sources to trigger Rule 2 distributed attack alert.
+              </div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="app.runDemoScenario('unusual_sources')">
+              <i class="fa-solid fa-network-wired"></i> Test Distributed Attack
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Live Terminal Console -->
+        <div class="terminal-panel">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <div class="terminal-dot red"></div>
+              <div class="terminal-dot yellow"></div>
+              <div class="terminal-dot green"></div>
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary);">
+              <i class="fa-solid fa-terminal"></i> Attack Lab Live Execution Console
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="app.clearTerminal()" style="padding: 2px 8px; font-size: 0.7rem;">Clear Console</button>
+          </div>
+          <div class="terminal-body" id="test-terminal-output">
+[System Ready] Click any attack scenario above to run live demonstration.
+Validation results, counter states, and JSON responses will stream here in real time.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================================================================
+           VIEW 4: DETECTION RULES
+           ================================================================ -->
+      <section class="page-view" id="view-detection-rules">
+        <div class="panel-header" style="margin-bottom: 20px;">
+          <div>
+            <div class="panel-title" style="font-size: 1.2rem;"><i class="fa-solid fa-shield-halved" style="color: var(--accent-cyan);"></i> Detection Rule Configuration Engine</div>
+            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Customize thresholds, sliding time windows, and severity ratings in real time.</div>
+          </div>
+        </div>
+
+        <div class="rules-grid" id="rules-cards-container">
+          <!-- Dynamically populated by app.js -->
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 5: FLAGGED ACCOUNTS
+           ================================================================ -->
+      <section class="page-view" id="view-flagged-accounts">
+        <div class="chart-card">
+          <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-user-ninja" style="color: var(--accent-rose);"></i> Account Security Profiles & Risk Monitoring</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="text" class="form-input" id="accounts-search" placeholder="Search account ID..." style="width: 200px; padding: 4px 10px; font-size: 0.8rem;">
+              <select class="form-select" id="accounts-risk-filter" style="width: 140px; padding: 4px 10px; font-size: 0.8rem;">
+                <option value="ALL">All Risk Levels</option>
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="HIGH">HIGH</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="LOW">LOW</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Account ID</th>
+                  <th>Risk Rating</th>
+                  <th>Total Attempts</th>
+                  <th>Successful</th>
+                  <th>Failed Logins</th>
+                  <th>Failure Rate</th>
+                  <th>Distinct Sources</th>
+                  <th>Alerts</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="accounts-tbody">
+                <tr><td colspan="9" class="empty-state">No account activity recorded yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 6: ALERT HISTORY
+           ================================================================ -->
+      <section class="page-view" id="view-alert-history">
+        <div class="chart-card">
+          <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-rose);"></i> Alert Investigation & Incident History</div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <input type="text" class="form-input" id="alerts-search" placeholder="Filter by Account ID..." style="width: 180px; padding: 4px 10px; font-size: 0.8rem;">
+              <select class="form-select" id="alerts-status-filter" style="width: 130px; padding: 4px 10px; font-size: 0.8rem;">
+                <option value="ALL">All Statuses</option>
+                <option value="OPEN">OPEN</option>
+                <option value="INVESTIGATING">INVESTIGATING</option>
+                <option value="RESOLVED">RESOLVED</option>
+                <option value="FALSE_POSITIVE">FALSE_POSITIVE</option>
+              </select>
+              <select class="form-select" id="alerts-severity-filter" style="width: 130px; padding: 4px 10px; font-size: 0.8rem;">
+                <option value="ALL">All Severities</option>
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="HIGH">HIGH</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="INFORMATIONAL">INFORMATIONAL</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Alert ID</th>
+                  <th>Timestamp (UTC)</th>
+                  <th>Account ID</th>
+                  <th>Rule Name</th>
+                  <th>Severity</th>
+                  <th>Status</th>
+                  <th>Detection Reason</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="alerts-history-tbody">
+                <tr><td colspan="8" class="empty-state">No security alerts recorded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 7: REPORTS & EXPORT
+           ================================================================ -->
+      <section class="page-view" id="view-reports">
+        <div class="panel-header" style="margin-bottom: 20px;">
+          <div>
+            <div class="panel-title" style="font-size: 1.2rem;"><i class="fa-solid fa-file-invoice" style="color: var(--accent-cyan);"></i> Executive Security Audit & Compliance Reports</div>
+            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Comprehensive metrics summary, rejection analysis, and downloadable CSV records.</div>
+          </div>
+          <a href="/api/reports/export" class="btn btn-primary" download>
+            <i class="fa-solid fa-download"></i> Export Full CSV Report
+          </a>
+        </div>
+
+        <!-- Report Cards -->
+        <div class="metrics-grid" id="reports-metrics-grid">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="dashboard-split" style="margin-top: 20px;">
+          <!-- Alerts by Rule Table -->
+          <div class="chart-card">
+            <div class="panel-header">
+              <div class="panel-title"><i class="fa-solid fa-shield-virus" style="color: var(--accent-rose);"></i> Detections by Rule & Severity</div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Rule Name</th>
+                    <th>Severity</th>
+                    <th>Alert Count</th>
+                  </tr>
+                </thead>
+                <tbody id="reports-rules-tbody">
+                  <tr><td colspan="3" class="empty-state">No alerts recorded.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Source Breakdown Table -->
+          <div class="chart-card">
+            <div class="panel-header">
+              <div class="panel-title"><i class="fa-solid fa-network-wired" style="color: var(--accent-blue);"></i> Simulated Source Distribution</div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Source Identifier</th>
+                    <th>Total Traffic</th>
+                    <th>Failed Attempts</th>
+                  </tr>
+                </thead>
+                <tbody id="reports-sources-tbody">
+                  <tr><td colspan="3" class="empty-state">No source traffic recorded.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 8: SETTINGS
+           ================================================================ -->
+      <section class="page-view" id="view-settings">
+        <div class="chart-card" style="max-width: 800px; margin-bottom: 24px;">
+          <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-sliders" style="color: var(--accent-cyan);"></i> System & Simulator Settings</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">Unknown Account Ingestion Policy</label>
+            <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 8px;">
+              Configures how the ingestion pipeline handles events targeting accounts outside the synthetic catalog (e.g. rogue user IDs).
+            </div>
+            <select class="form-select" id="setting-unknown-policy" style="max-width: 380px;">
+              <option value="AUTO_CREATE">AUTO_CREATE — Safely initialize new synthetic account profile</option>
+              <option value="REJECT">REJECT — Discard event & raise validation alert</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">UI Real-Time Polling Interval</label>
+            <select class="form-select" id="setting-polling-interval" style="max-width: 380px;">
+              <option value="500">500 ms (High-frequency)</option>
+              <option value="1000" selected>1000 ms (Recommended default)</option>
+              <option value="2000">2000 ms (Low CPU)</option>
+              <option value="5000">5000 ms (Minimal)</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary" id="btn-save-settings"><i class="fa-solid fa-floppy-disk"></i> Save Settings</button>
+        </div>
+
+        <!-- Hackathon & Architecture Info Card -->
+        <div class="chart-card" style="max-width: 800px; border-color: rgba(0, 242, 254, 0.3);">
+          <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-graduation-cap" style="color: var(--accent-cyan);"></i> Hackathon Architectural Defense Model</div>
+          </div>
+          <div style="color: var(--text-secondary); line-height: 1.6; font-size: 0.85rem;">
+            <p style="margin-bottom: 10px;">
+              <b>CyberShield</b> is engineered using a decoupled worker-thread architecture. Incoming login events stream into an asynchronous, thread-safe <code>queue.Queue</code>.
+            </p>
+            <p style="margin-bottom: 10px;">
+              <b>Concurrency & Thread Safety:</b> Per-account state transitions are protected with an internal <code>threading.RLock</code>, guaranteeing atomic counter increments and eliminating lost writes even when dozens of threads target the same account concurrently.
+            </p>
+            <p style="margin-bottom: 10px;">
+              <b>Out-of-Order Resiliency:</b> Sliding time windows sort events chronologically by parsed UTC timestamps rather than arrival sequence, preventing evasion by replayed or delayed packets.
+            </p>
+            <p style="color: var(--accent-cyan);">
+              <b>Defensive Simulation Notice:</b> Built strictly for defensive educational simulations. Does not capture or store credentials or real passwords.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ====================================================================
+     MODALS
+     ==================================================================== -->
+
+<!-- Alert Review Modal -->
+<div class="modal-overlay" id="alert-review-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-magnifying-glass" style="color: var(--accent-cyan);"></i> Review Security Alert</div>
+      <button class="modal-close-btn" onclick="app.closeModal('alert-review-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-alert-details" style="font-family: var(--font-mono); font-size: 0.8rem; margin-bottom: 16px; background: var(--bg-canvas); padding: 12px; border-radius: var(--radius-sm);">
+        <!-- Populated by JS -->
+      </div>
+      <div class="form-group">
+        <label class="form-label">Update Status</label>
+        <select class="form-select" id="modal-alert-status">
+          <option value="OPEN">OPEN</option>
+          <option value="INVESTIGATING">INVESTIGATING</option>
+          <option value="RESOLVED">RESOLVED</option>
+          <option value="FALSE_POSITIVE">FALSE_POSITIVE</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Investigation Notes</label>
+        <textarea class="form-textarea" id="modal-alert-notes" rows="3" placeholder="Add analyst notes or resolution details..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="app.closeModal('alert-review-modal')">Cancel</button>
+      <button class="btn btn-primary" id="modal-alert-save-btn">Save Review</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Confirmation Modal -->
+<div class="modal-overlay" id="reset-confirm-modal">
+  <div class="modal-content" style="max-width: 440px;">
+    <div class="modal-header">
+      <div class="modal-title" style="color: var(--accent-rose);"><i class="fa-solid fa-triangle-exclamation"></i> Confirm Demo Reset</div>
+      <button class="modal-close-btn" onclick="app.closeModal('reset-confirm-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color: var(--text-secondary); line-height: 1.5;">
+        Are you sure you want to wipe all processed events, alerts, and account statistics? This will reset the database to a completely clean baseline for the next demo.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="app.closeModal('reset-confirm-modal')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-reset-execute-btn"><i class="fa-solid fa-trash-can"></i> Reset All Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notifications Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Custom Application Logic -->
+<script src="/static/js/app.js"></script>
+</body>
+</html>
